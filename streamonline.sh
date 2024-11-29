@@ -96,7 +96,7 @@ while getopts "qs:S:hD:m:q:c:" flag; do
       STREAMONLINE_SILENT_MODE='anyonewhoreadsthismustjumpinthecaacandthentalkaboutit'
       streamer=$OPTARG
     ;;
-    s)
+    s) # pain.
       host=$OPTARG
     ;;
     \?)
