@@ -46,7 +46,10 @@ while getopts "qs:S:hD:m:q:c:" flag; do
         ;;
         *) echo "streamonline: invalid option, please try again"; exit 1;;
       esac
+      # create timer unit
       printf "${FIRST_THIRD}${OTHER_THIRD//,/\\nOnCalendar=}${LAST_THIRD}" > $HOME/.local/share/systemd/user/streamonline_$OPTARG.timer
+      
+      # begin config file creation
       printf "\nDo you want to open the stream with xdg-open (1) or streamlink (2)\n>>> "
       read chosen_client
       case $chosen_client in
@@ -68,7 +71,11 @@ while getopts "qs:S:hD:m:q:c:" flag; do
       esac
       printf "enter the site to connect to and the required syntax to connect\n\033[0;31m1. (do not include the streamer name - it must be at the end)\n2. (with https:// - otherwise it will not work)\n3. (this will be inserted exactly as typed, make sure your browser (or streamlink) can understand it)\033[0m\nenter the site to connect to and the required syntax to connect :\n>>>"
       read host_site
-      # enable the modules for $OPTARG
+      # add config file
+      printf "000\n$chosen_client\n$stream_qaulity\n$host_site" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
+      # end config file creation
+      
+      # enable & start the modules for $OPTARG
       systemctl --user enable "streamonline_$OPTARG.timer"
       systemctl --user start "streamonline_$OPTARG.timer"
       systemctl --user enable "streamonline_$OPTARG.service"
@@ -77,7 +84,6 @@ while getopts "qs:S:hD:m:q:c:" flag; do
       systemctl --user status "streamonline_$OPTARG.service"
       systemctl --user start "streamonline_$OPTARG.service"
       printf "##############################################\nsuccess\n"
-      printf "000\n$chosen_client\n$stream_qaulity\n$host_site" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
     ;;
     D) # delete files
       self_disable=TRUE
