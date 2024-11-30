@@ -1,5 +1,5 @@
 ﻿#!/bin/bash
-while getopts "qs:S:hD:m:q:c:" flag; do
+while getopts "qs:S:hD:q:c:" flag; do
   case $flag in
     q) # silent mode
     STREAMONLINE_SILENT_MODE='thisisdoesntmeananythingsinceitonlychecksifthevariableexistssoimjustgoingtotellyoutowatchaZentreyastream'
