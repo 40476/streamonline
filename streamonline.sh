@@ -97,7 +97,7 @@ while getopts "qs:S:hD:m:q:c:" flag; do
       rm "$HOME/.local/share/systemd/user/streamonline_$OPTARG.service"
       rm "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
     ;;
-    c)
+  c) # check only, no special stuff
       mode_return="returnstreamer"
       STREAMONLINE_SILENT_MODE='anyonewhoreadsthismustjumpinthecaacandthentalkaboutit'
       streamer=$OPTARG
