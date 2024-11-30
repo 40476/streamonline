@@ -1,4 +1,4 @@
-﻿# StreamOnline
+# StreamOnline
 ## A live stream checker
 
 this is the culmination of many months of work, enjoy!

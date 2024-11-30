@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 while getopts "qs:S:hD:q:c:" flag; do
   case $flag in
     q) # silent mode
