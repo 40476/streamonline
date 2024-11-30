@@ -5,7 +5,6 @@ while getopts "qs:S:hD:m:q:c:" flag; do
     STREAMONLINE_SILENT_MODE='thisisdoesntmeananythingsinceitonlychecksifthevariableexistssoimjustgoingtotellyoutowatchaZentreyastream'
     ;;
     h) # show help
-      
     self_disable=TRUE
     printf "streamonline: check if a streamer is online
     -h            : show this help
