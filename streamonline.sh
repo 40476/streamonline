@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 while getopts "qs:S:hD:q:c:" flag; do
   case $flag in
     q) # silent mode
@@ -138,7 +138,7 @@ if [ -z "${self_disable}" ]; then
             if [ "$(notify-send "${streamer} is online!" "${host}${streamer}" -u CRITICAL -a "${streamer}-detector" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
               case $mode in
                 xdg_open) xdg-open "$host$streamer" ;;
-                streamlink) nohup streamlink  --twitch-disable-ads "$host$streamer" $qaulity & ;;
+                streamlink) nohup streamlink  --twitch-disable-ads --title "{author} - {category} - {title}" "$host$streamer" $qaulity & ;;
                 *) echo "streamonline: unsupported mode, exiting";;
               esac
             fi
