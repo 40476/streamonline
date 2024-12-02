@@ -70,8 +70,22 @@ while getopts "qs:S:hD:q:c:" flag; do
       esac
       printf "enter the site to connect to and the required syntax to connect\n\033[0;31m1. (do not include the streamer name - it must be at the end)\n2. (with https:// - otherwise it will not work)\n3. (this will be inserted exactly as typed, make sure your browser (or streamlink) can understand it)\033[0m\nenter the site to connect to and the required syntax to connect :\n>>>"
       read host_site
+      
+      #notify_text styling
+      # TODO add this
+      # , category + stream title -- (coming soon) (3)
+      printf "\nWhat notification style do you want? URL (1), stream title (2)\n>>> "
+          read chosen_notify
+          case $chosen_notify in
+            1) chosen_notify='host_link';;
+            2) chosen_notify='name';;
+            3) chosen_notify='name_cat';;
+            *) printf "streamonline: invalid option, please try again\n"; exit 1;;
+          esac
+      
       # add config file
-      printf "000\n$chosen_client\n$stream_qaulity\n$host_site" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
+      printf "000\n$chosen_client\n$stream_qaulity\n$host_site\n$chosen_notify" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
+      
       # end config file creation
       
       # enable & start the modules for $OPTARG
@@ -116,6 +130,9 @@ function toconsole() {
     echo $1
   fi
 }
+# dont mess with this, its goofy
+function returnStreamData(){ echo "$streamData"; }
+
 
 # chaos ensues
 if [ -z "${self_disable}" ]; then
@@ -128,14 +145,22 @@ if [ -z "${self_disable}" ]; then
     mode="$(sed '2!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
     qaulity="$(sed '3!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
     host="$(sed '4!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
+    notify_text="$(sed '5!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
   fi
   if [ -z "${doesExist}" ]; then
     if ! grep -sq "busy" "$sloc/${streamer}prog_state.txt"; then
       printf "busy" > "$sloc/${streamer}prog_state.txt"
-      if streamlink "${host}${streamer}" | grep -sq 'Available streams'; then
+      streamData="$(streamlink --json "${host}${streamer}")"
+#       streamlink --json https://twitch.tv/zentreya | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)'
+      if returnStreamData | grep -sq '"streams"'; then
           toconsole "stream found."
           if [ -z "${mode_return}" ]; then
-            if [ "$(notify-send "${streamer} is online!" "${host}${streamer}" -u CRITICAL -a "${streamer}-detector" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
+          case $notify_text in 
+            host_link) notify_text="${host}${streamer}" ;;
+            name) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" ;;
+            name_cat) notify_text="$(returnStreamData | grep -oP "category\K.*" | cut -c 5- | grep -Po '.*(?=.$)')\n$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" ;;
+          esac
+            if [ "$(notify-send "${streamer} is online!" "${notify_text}" -u CRITICAL -a "${streamer}" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
               case $mode in
                 xdg_open) xdg-open "$host$streamer" ;;
                 streamlink) nohup streamlink  --twitch-disable-ads --title "{author} - {category} - {title}" "$host$streamer" $qaulity & ;;
