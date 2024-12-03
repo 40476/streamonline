@@ -84,7 +84,6 @@ while getopts "qs:S:hD:q:c:" flag; do
       
       # add config file
       printf "000\n$chosen_client\n$stream_qaulity\n$host_site\n$chosen_notify" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
-      
       # end config file creation
       
       # enable & start the modules for $OPTARG
