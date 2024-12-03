@@ -1,4 +1,4 @@
-#!/bin/sh
+﻿#!/bin/sh
 while getopts "qs:S:hD:q:c:" flag; do
   case $flag in
     q) # silent mode
@@ -25,7 +25,7 @@ while getopts "qs:S:hD:q:c:" flag; do
       # create service unit
       printf "[Unit]\nDescription=\"Execute streamonline and check for $OPTARG\"\n[Service]\nType=oneshot\nKillMode=process\nExecStart=/bin/bash $HOME/.local/bin/streamonline $OPTARG\n[Install]\nWantedBy=streamonline_$OPTARG.timer" > $HOME/.local/share/systemd/user/streamonline_$OPTARG.service
       
-      # create the timer unit
+      # configure the timer unit
       FIRST_THIRD="[Unit]\nDescription=Run every 15 minutes or at chosen times of day\n[Timer]\nOnCalendar="
       LAST_THIRD="\nAccuracySec=1min\nUnit=streamonline_$OPTARG.service\n[Install]\nWantedBy=timers.target"
       printf "enter '1' for daytime\n      '2' for anytime\n      '3' for custom\n>>> "
@@ -45,7 +45,7 @@ while getopts "qs:S:hD:q:c:" flag; do
         ;;
         *) echo "streamonline: invalid option, please try again"; exit 1;;
       esac
-      # create timer unit
+      # create timer unit file
       printf "${FIRST_THIRD}${OTHER_THIRD//,/\\nOnCalendar=}${LAST_THIRD}" > $HOME/.local/share/systemd/user/streamonline_$OPTARG.timer
       
       # begin config file creation
@@ -73,8 +73,7 @@ while getopts "qs:S:hD:q:c:" flag; do
       
       #notify_text styling
       # TODO add this
-      # , category + stream title -- (coming soon) (3)
-      printf "\nWhat notification style do you want? URL (1), stream title (2)\n>>> "
+      printf "\nWhat notification style do you want? URL (1), stream title (2), category + stream title (3)\n>>> "
           read chosen_notify
           case $chosen_notify in
             1) chosen_notify='host_link';;
@@ -101,10 +100,10 @@ while getopts "qs:S:hD:q:c:" flag; do
     D) # delete files
       self_disable=TRUE
       # delete and disable modules for $OPTARG
-      systemctl --user stop streamonline_$OPTARG.timer
-      systemctl --user stop streamonline_$OPTARG.service
-      systemctl --user disable streamonline_$OPTARG.timer
-      systemctl --user disable streamonline_$OPTARG.service
+      systemctl --user stop "streamonline_$OPTARG.timer"
+      systemctl --user stop "streamonline_$OPTARG.service"
+      systemctl --user disable "streamonline_$OPTARG.timer"
+      systemctl --user disable "streamonline_$OPTARG.service"
       systemctl --user daemon-reload
       rm "$HOME/.local/share/systemd/user/streamonline_$OPTARG.timer"
       rm "$HOME/.local/share/systemd/user/streamonline_$OPTARG.service"
@@ -112,7 +111,7 @@ while getopts "qs:S:hD:q:c:" flag; do
     ;;
   c) # check only, no special stuff
       mode_return="returnstreamer"
-      STREAMONLINE_SILENT_MODE='anyonewhoreadsthismustjumpinthecaacandthentalkaboutit'
+      STREAMONLINE_SILENT_MODE='gyaat'
       streamer=$OPTARG
     ;;
     s) # pain.
@@ -151,16 +150,17 @@ if [ -z "${self_disable}" ]; then
     if ! grep -sq "busy" "$sloc/${streamer}prog_state.txt"; then
       printf "busy" > "$sloc/${streamer}prog_state.txt"
       streamData="$(streamlink --json "${host}${streamer}")"
-#       streamlink --json https://twitch.tv/zentreya | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)'
+      # this grabs lines from json and trims them for our use, replace title with desired info in a new option and make a PR:
+#       | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)'
       if returnStreamData | grep -sq '"streams"'; then
           toconsole "stream found."
           if [ -z "${mode_return}" ]; then
           case $notify_text in 
-            host_link) notify_text="${host}${streamer}" ;;
-            name) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" ;;
-            name_cat) notify_text="$(returnStreamData | grep -oP "category\K.*" | cut -c 5- | grep -Po '.*(?=.$)')\n$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" ;;
+            host_link) notify_text="${host}${streamer}" && notify_title="$streamer" ;;
+            name) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" && notify_title="$streamer" ;;
+            name_cat) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" && notify_title="$(returnStreamData | grep -oP "category\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" ;;
           esac
-            if [ "$(notify-send "${streamer} is online!" "${notify_text}" -u CRITICAL -a "${streamer}" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
+            if [ "$(notify-send "${streamer} is online!" "${notify_text}" -u CRITICAL -a "${notify_title}" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
               case $mode in
                 xdg_open) xdg-open "$host$streamer" ;;
                 streamlink) nohup streamlink  --twitch-disable-ads --title "{author} - {category} - {title}" "$host$streamer" $qaulity & ;;
@@ -188,5 +188,5 @@ if [ -z "${self_disable}" ]; then
     toconsole "already returned a stream for \"${streamer}\" today"
   fi
   if [ -z "${alreadyActive}" ]; then rm "$sloc/${streamer}prog_state.txt" > /dev/null 2>&1; fi
-  rm "$sloc/${streamer}streamer.html" > /dev/null 2>&1
 fi
+exit 0
