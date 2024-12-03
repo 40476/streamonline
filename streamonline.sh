@@ -1,4 +1,4 @@
-﻿#!/bin/sh
+#!/bin/sh
 while getopts "qs:S:hD:q:c:" flag; do
   case $flag in
     q) # silent mode
@@ -10,7 +10,7 @@ while getopts "qs:S:hD:q:c:" flag; do
     -h            : show this help
     -S [streamer] : setup automatic stream checking for [streamer], see this apps code to change timing
     -D [streamer] : remove systemd units for automatic checking for [streamer]
-    -c [streamer] : check the status of [streamer], primarily for use in with other scripts and programs (requires -s)
+    -c [streamer] : check the status of [streamer], primarily for use in with other scripts and programs -->(requires -s)<--
     -s [host site]the site to connect to and the required syntax to connect
         \033[0;31m1. (do not include the streamer name)
         2. (with https:// - otherwise it will not work)
