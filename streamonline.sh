@@ -156,8 +156,8 @@ if [ -z "${self_disable}" ]; then
           if [ -z "${mode_return}" ]; then
           case $notify_text in 
             host_link) notify_text="${host}${streamer}" && notify_title="$streamer" ;;
-            name) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" && notify_title="$streamer" ;;
-            name_cat) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" && notify_title="$(returnStreamData | grep -oP "category\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" ;;
+            name) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | rev | cut -c 3- | rev)" && notify_title="$streamer" ;;
+            name_cat) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" && notify_title="$(returnStreamData | grep -oP "category\K.*" | cut -c 5- | rev | cut -c 3- | rev)" ;;
           esac
             if [ "$(notify-send "${streamer} is online!" "${notify_text}" -u CRITICAL -a "${notify_title}" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
               case $mode in
