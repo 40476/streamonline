@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 while getopts "qs:S:hD:q:c:" flag; do
   case $flag in
     q) # silent mode
@@ -6,7 +6,7 @@ while getopts "qs:S:hD:q:c:" flag; do
     ;;
     h) # show help
     self_disable=TRUE
-    printf "streamonline: check if a streamer is online
+    printf "$0: check if a streamer is online
     -h            : show this help
     -S [streamer] : setup automatic stream checking for [streamer], see this apps code to change timing
     -D [streamer] : remove systemd units for automatic checking for [streamer]
@@ -23,7 +23,7 @@ while getopts "qs:S:hD:q:c:" flag; do
       mkdir "$HOME/.local/share/systemd/user/"
       
       # create service unit
-      printf "[Unit]\nDescription=\"Execute streamonline and check for $OPTARG\"\n[Service]\nType=oneshot\nKillMode=process\nExecStart=/bin/bash $HOME/.local/bin/streamonline $OPTARG\n[Install]\nWantedBy=streamonline_$OPTARG.timer" > $HOME/.local/share/systemd/user/streamonline_$OPTARG.service
+      printf "[Unit]\nDescription=\"Execute $0 and check for $OPTARG\"\n[Service]\nType=oneshot\nKillMode=process\nExecStart=/bin/bash $HOME/.local/bin/streamonline $OPTARG\n[Install]\nWantedBy=streamonline_$OPTARG.timer" > $HOME/.local/share/systemd/user/streamonline_$OPTARG.service
       
       # configure the timer unit
       FIRST_THIRD="[Unit]\nDescription=Run every 15 minutes or at chosen times of day\n[Timer]\nOnCalendar="
@@ -43,7 +43,7 @@ while getopts "qs:S:hD:q:c:" flag; do
             exit 1
           fi
         ;;
-        *) echo "streamonline: invalid option, please try again"; exit 1;;
+        *) echo "$0: invalid option, please try again"; exit 1;;
       esac
       # create timer unit file
       printf "${FIRST_THIRD}${OTHER_THIRD//,/\\nOnCalendar=}${LAST_THIRD}" > $HOME/.local/share/systemd/user/streamonline_$OPTARG.timer
@@ -63,10 +63,10 @@ while getopts "qs:S:hD:q:c:" flag; do
             4) stream_qaulity='720p';;
             5) stream_qaulity='720p60';;
             6) stream_qaulity='1080p60';;
-            *) printf "streamonline: invalid option, please try again\n"; exit 1;;
+            *) printf "$0: invalid option, please try again\n"; exit 1;;
           esac
         ;;
-        *) echo "streamonline: invalid option, please try again\n"; exit 1;;
+        *) echo "$0: invalid option, please try again\n"; exit 1;;
       esac
       printf "enter the site to connect to and the required syntax to connect\n\033[0;31m1. (do not include the streamer name - it must be at the end)\n2. (with https:// - otherwise it will not work)\n3. (this will be inserted exactly as typed, make sure your browser (or streamlink) can understand it)\033[0m\nenter the site to connect to and the required syntax to connect :\n>>>"
       read host_site
@@ -79,7 +79,7 @@ while getopts "qs:S:hD:q:c:" flag; do
             1) chosen_notify='host_link';;
             2) chosen_notify='name';;
             3) chosen_notify='name_cat';;
-            *) printf "streamonline: invalid option, please try again\n"; exit 1;;
+            *) printf "$0: invalid option, please try again\n"; exit 1;;
           esac
       
       # add config file
@@ -118,7 +118,7 @@ while getopts "qs:S:hD:q:c:" flag; do
     ;;
     \?)
       self_disable=TRUE
-      echo "streamonline: invalid option, see help for instructions"
+      echo "$0: invalid option, see help for instructions"
     ;;
   esac
 done
@@ -163,7 +163,7 @@ if [ -z "${self_disable}" ]; then
               case $mode in
                 xdg_open) xdg-open "$host$streamer" ;;
                 streamlink) nohup streamlink  --twitch-disable-ads --title "{author} - {category} - {title}" "$host$streamer" $qaulity & ;;
-                *) echo "streamonline: unsupported mode, exiting";;
+                *) echo "$0: unsupported mode, exiting";;
               esac
             fi
           else
