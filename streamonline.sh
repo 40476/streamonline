@@ -188,6 +188,10 @@ if [ -z "${self_disable}" ]; then
   else
     toconsole "already returned a stream for \"${streamer}\" today"
   fi
-  if [ -z "${alreadyActive}" ]; then cleanup > /dev/null 2>&1; fi
+  if [ -z "${alreadyActive}" ]; then
+    trap - EXIT
+    cleanup > /dev/null 2>&1; 
+
+  fi
 fi
 exit 0
