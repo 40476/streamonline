@@ -1,4 +1,5 @@
 #!/bin/sh
+trap cleanup EXIT
 while getopts "qs:S:hD:q:c:" flag; do
   case $flag in
     q) # silent mode
@@ -130,6 +131,7 @@ function toconsole() {
 }
 # dont mess with this, its goofy
 function returnStreamData(){ echo "$streamData"; }
+function cleanup(){ rm "$sloc/${streamer}prog_state.txt"; }
 
 
 # chaos ensues
@@ -186,6 +188,6 @@ if [ -z "${self_disable}" ]; then
   else
     toconsole "already returned a stream for \"${streamer}\" today"
   fi
-  if [ -z "${alreadyActive}" ]; then rm "$sloc/${streamer}prog_state.txt" > /dev/null 2>&1; fi
+  if [ -z "${alreadyActive}" ]; then cleanup > /dev/null 2>&1; fi
 fi
 exit 0
