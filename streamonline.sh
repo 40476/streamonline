@@ -1,11 +1,6 @@
-<<<<<<< HEAD
 #!/bin/sh
 trap cleanup EXIT
 while getopts "qs:S:hD:q:c:" flag; do
-=======
-﻿#!/bin/bash
-while getopts "qs:S:hD:m:q:c:" flag; do
->>>>>>> 9f60101 (fjhdbhsfd)
   case $flag in
     q) # silent mode
     STREAMONLINE_SILENT_MODE='thisisdoesntmeananythingsinceitonlychecksifthevariableexistssoimjustgoingtotellyoutowatchaZentreyastream'
