@@ -1,6 +1,6 @@
 #!/bin/sh
 trap cleanup EXIT
-while getopts "qs:S:hD:q:c:" flag; do
+while getopts "qs:S:hD:q:c:H" flag; do
   case $flag in
     q) # silent mode
     STREAMONLINE_SILENT_MODE='thisisdoesntmeananythingsinceitonlychecksifthevariableexistssoimjustgoingtotellyoutowatchaZentreyastream'
@@ -55,6 +55,8 @@ while getopts "qs:S:hD:q:c:" flag; do
       case $chosen_client in
         1) chosen_client="xdg_open";stream_qaulity="360p";;
         2) chosen_client="streamlink"
+          # printf "fetching data...\n"
+
           printf "\nWhat qaulity do you want? 160p (1), 360p (2), 480p (3), 720p (4) is available sporadically--same with 720p60 (5), 1080p60 (6)-- please be sure your stream supports it, otherwise streamlink will not launch\n>>> "
           read stream_qaulity
           case $stream_qaulity in
@@ -117,6 +119,9 @@ while getopts "qs:S:hD:q:c:" flag; do
     s) # pain.
       host=$OPTARG
     ;;
+    H) # debugging.
+      sleep 9999999999
+    ;;
     \?)
       self_disable=TRUE
       echo "streamonline: invalid option, see help for instructions"
@@ -132,7 +137,13 @@ function toconsole() {
 # dont mess with this, its goofy
 function returnStreamData(){ echo "$streamData"; }
 function cleanup(){ rm "$sloc/${streamer}prog_state.txt"; }
-
+function canRun(){
+  if [ $(($(date +%s) - $(date +%s -r "$sloc/${streamer}prog_state.txt"))) -gt 43200 ]; then
+    printf "true"
+  else
+    printf "false"
+  fi
+}
 
 # chaos ensues
 if [ -z "${self_disable}" ]; then
@@ -148,11 +159,12 @@ if [ -z "${self_disable}" ]; then
     notify_text="$(sed '5!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
   fi
   if [ -z "${doesExist}" ]; then
-    if ! grep -sq "busy" "$sloc/${streamer}prog_state.txt"; then
+    # Are we already running?
+    if canRun 2> /dev/null | grep -sq true; then
       printf "busy" > "$sloc/${streamer}prog_state.txt"
       streamData="$(streamlink --json "${host}${streamer}")"
       # this grabs lines from json and trims them for our use, replace title with desired info in a new option and make a PR:
-#       | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)'
+      # | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)'
       if returnStreamData | grep -sq '"streams"'; then
           toconsole "stream found."
           if [ -z "${mode_return}" ]; then
@@ -183,6 +195,7 @@ if [ -z "${self_disable}" ]; then
     else
       toconsole "program already active, exiting."
       alreadyActive="inpoopments"
+      trap - EXIT
       exit 0
     fi
   else
@@ -190,8 +203,7 @@ if [ -z "${self_disable}" ]; then
   fi
   if [ -z "${alreadyActive}" ]; then
     trap - EXIT
-    cleanup > /dev/null 2>&1; 
-
+    cleanup > /dev/null 2>&1 
   fi
 fi
 exit 0
