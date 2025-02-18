@@ -130,9 +130,9 @@ while getopts "qs:S:hD:q:c:H" flag; do
 done
 
 function toconsole() {
-  # if [ -z "${STREAMONLINE_SILENT_MODE}" ]; then
+  if [ -z "${STREAMONLINE_SILENT_MODE}" ]; then
     echo $1
-  # fi
+  fi
 }
 # dont mess with this, its goofy
 function returnStreamData(){ echo "$streamData"; }
