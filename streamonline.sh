@@ -130,16 +130,18 @@ while getopts "qs:S:hD:q:c:H" flag; do
 done
 
 function toconsole() {
-  if [ -z "${STREAMONLINE_SILENT_MODE}" ]; then
+  # if [ -z "${STREAMONLINE_SILENT_MODE}" ]; then
     echo $1
-  fi
+  # fi
 }
 # dont mess with this, its goofy
 function returnStreamData(){ echo "$streamData"; }
 function cleanup(){ rm "$sloc/${streamer}prog_state.txt"; }
 function canRun(){
-  if [ $(($(date +%s) - $(date +%s -r "$sloc/${streamer}prog_state.txt"))) -gt 43200 ]; then
+  if [ ! -f "$sloc/${streamer}prog_state.txt" ] || [ $(find "$sloc/${streamer}prog_state.txt" -mmin +720) ]; then
+    
     printf "true"
+  
   else
     printf "false"
   fi
