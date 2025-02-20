@@ -175,7 +175,7 @@ if [ -z "${self_disable}" ]; then
             name) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | rev | cut -c 3- | rev)" && notify_title="$streamer" ;;
             name_cat) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" && notify_title="$(returnStreamData | grep -oP "category\K.*" | cut -c 5- | rev | cut -c 3- | rev)" ;;
           esac
-            if [ "$(notify-send "${streamer} is online!" "${notify_text}" -u CRITICAL -a "${notify_title}" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
+            if [ "$(notify-send "${notify_title}" "${notify_text}" -u CRITICAL -a "${streamer} is online!" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
               case $mode in
                 xdg_open) xdg-open "$host$streamer" ;;
                 streamlink) nohup streamlink  --twitch-disable-ads --title "{author} - {category} - {title}" "$host$streamer" $qaulity & ;;
