@@ -1,11 +1,11 @@
 #!/bin/sh
 trap cleanup EXIT
-# loop through an separately array and throw an error if a command binary is not found
+# detect missing commands
 depCommands=("streamlink" "xdg-open" "notify-send" "figlet" "systemctl" "sed" "grep" "cut" "rev" "date" "find" "mkdir" "nohup" "printf")
 for cmd in "${depCommands[@]}"; do
   if ! which $cmd > /dev/null 2>&1; then
     echo "streamonline: $cmd not found, exiting"
-    exit 1
+    exit 127
   fi
 done
 while getopts "hlqs:S:D:q:c:H" flag; do
@@ -68,21 +68,15 @@ while getopts "hlqs:S:D:q:c:H" flag; do
         2) chosen_client="streamlink"
           # printf "fetching data...\n"
 
-          printf "\nWhat qaulity do you want? 160p (1), 360p (2), 480p (3), 720p (4) is available sporadically--same with 720p60 (5), 1080p60 (6)-- please be sure your stream supports it, otherwise streamlink will not launch\n>>> "
+          printf "\nWhat qaulity do you want? 160p, 360p, 480p, 720p (available rarely), 720p60 (available usually), 1080p (available rarely) 1080p60 (available usually)-- please be sure your stream supports at least one, otherwise streamlink will not launch\n(leave empty for best quality)\n>>> "
           read stream_qaulity
-          case $stream_qaulity in
-            1) stream_qaulity='160p';;
-            2) stream_qaulity='360p';;
-            3) stream_qaulity='480p';;
-            4) stream_qaulity='720p';;
-            5) stream_qaulity='720p60';;
-            6) stream_qaulity='1080p60';;
-            *) printf "streamonline: invalid option, please try again\n"; exit 1;;
-          esac
+          if [ -z $stream_qaulity ]; then
+            $stream_qaulity="best"
+          fi
         ;;
         *) echo "streamonline: invalid option, please try again\n"; exit 1;;
       esac
-      printf "enter the site to connect to and the required syntax to connect\n\033[0;31m1. (do not include the streamer name - it must be at the end)\n2. (with https:// - otherwise it will not work)\n3. (this will be inserted exactly as typed, make sure your browser (or streamlink) can understand it)\033[0m\nenter the site to connect to and the required syntax to connect :\n>>>"
+      printf "Enter the site to connect to and the required syntax to connect\n\033[0;31m1. (do not include the streamer name - it must be at the end)\n2. (with https:// - otherwise it will not work)\n3. (this will be inserted exactly as typed, make sure your browser (or streamlink) can understand it)\033[0m\nenter the site to connect to and the required syntax to connect :\n>>>"
       read host_site
       
       #notify_text styling
@@ -149,10 +143,9 @@ function toconsole() {
 function returnStreamData(){ echo "$streamData"; }
 function cleanup(){ rm "$sloc/${streamer}prog_state.txt"; }
 function canRun(){
+  # run anyway if statefile more than 720 minutes old is found
   if [ ! -f "$sloc/${streamer}prog_state.txt" ] || [ $(find "$sloc/${streamer}prog_state.txt" -mmin +720) ]; then
-    
     printf "true"
-  
   else
     printf "false"
   fi
