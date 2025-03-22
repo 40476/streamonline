@@ -1,7 +1,18 @@
 #!/bin/sh
 trap cleanup EXIT
-while getopts "qs:S:hD:q:c:H" flag; do
+# loop through an separately array and throw an error if a command binary is not found
+depCommands=("streamlink" "xdg-open" "notify-send" "figlet" "systemctl" "sed" "grep" "cut" "rev" "date" "find" "mkdir" "nohup" "printf")
+for cmd in "${depCommands[@]}"; do
+  if ! which $cmd > /dev/null 2>&1; then
+    echo "streamonline: $cmd not found, exiting"
+    exit 1
+  fi
+done
+while getopts "hlqs:S:D:q:c:H" flag; do
   case $flag in
+    l)
+      figlet StreamOnline
+    ;;
     q) # silent mode
     STREAMONLINE_SILENT_MODE='thisisdoesntmeananythingsinceitonlychecksifthevariableexistssoimjustgoingtotellyoutowatchaZentreyastream'
     ;;
@@ -14,7 +25,7 @@ while getopts "qs:S:hD:q:c:H" flag; do
     -c [streamer] : check the status of [streamer], primarily for use in with other scripts and programs -->(requires -s)<--
     -s [host site]the site to connect to and the required syntax to connect
         \033[0;31m1. (do not include the streamer name)
-        2. (with https:// - otherwise it will not work)
+        2. (needs https:// - otherwise it will not work)
         3. (this will be inserted exactly as typed, make sure streamlink (used for checking) can understand it and supports it)\033[0m\n"
     ;;
     S) # generate files
