@@ -1,13 +1,19 @@
 #!/bin/sh
 trap cleanup EXIT
+function cleanup(){ rm "$sloc/${streamer}prog_state.txt" > /dev/null 2>&1; }
 # detect missing commands
-depCommands=("streamlink" "xdg-open" "notify-send" "figlet" "systemctl" "sed" "grep" "cut" "rev" "date" "find" "mkdir" "nohup" "printf")
+depCommands=("streamlink" "xdg-open" "notify-send" "figlet" "systemctl" "sed" "grep" "cut" "rev" "date" "find" "mkdir" "nohup" "printf" "jq")
 for cmd in "${depCommands[@]}"; do
   if ! which $cmd > /dev/null 2>&1; then
-    echo "streamonline: $cmd not found, exiting"
-    exit 127
+    missing_commands+=("$cmd")
   fi
 done
+if [ ${#missing_commands[@]} -gt 0 ]; then
+  for cmd in "${missing_commands[@]}"; do
+    command-not-found "$cmd"
+  done
+  exit 127
+fi
 while getopts "hlqs:S:D:q:c:H" flag; do
   case $flag in
     l)
@@ -20,6 +26,7 @@ while getopts "hlqs:S:D:q:c:H" flag; do
     self_disable=TRUE
     printf "streamonline: check if a streamer is online
     -h            : show this help
+    -H hang and do nothing for 9999999999 seconds
     -S [streamer] : setup automatic stream checking for [streamer], see this apps code to change timing
     -D [streamer] : remove systemd units for automatic checking for [streamer]
     -c [streamer] : check the status of [streamer], primarily for use in with other scripts and programs -->(requires -s)<--
@@ -40,15 +47,15 @@ while getopts "hlqs:S:D:q:c:H" flag; do
       # configure the timer unit
       FIRST_THIRD="[Unit]\nDescription=Run every 15 minutes or at chosen times of day\n[Timer]\nOnCalendar="
       LAST_THIRD="\nAccuracySec=1min\nUnit=streamonline_$OPTARG.service\n[Install]\nWantedBy=timers.target"
-      printf "enter '1' for daytime\n      '2' for anytime\n      '3' for custom\n>>> "
       
       # lets take a card from the KDE playbook and make this program configurable
+      printf "enter '1' for daytime\n      '2' for anytime\n      '3' for custom\n>>> "
       read TIME_CHOICE
       case $TIME_CHOICE in
         1) OTHER_THIRD="7:00,7:15,7:30,7:45,8:00,8:15,8:30,8:45,9:00,9:15,9:30,9:45,10:00,10:15,10:30,10:45,11:00,11:15,11:30,11:45,12:00,12:15,12:30,12:45,13:00,13:15,13:30,13:45,14:00,14:15,14:30,14:45,15:00,15:15,15:30,15:45,16:00,16:15,16:30,16:45,17:00,17:15,17:30,17:45,18:00,18:15,18:30,18:45,19:00,19:15,19:30,19:45,20:00,20:15,20:30" ;;
         2) OTHER_THIRD="0:00,0:15,0:30,0:45,1:00,1:15,1:30,1:45,2:00,2:15,2:30,2:45,3:00,3:15,3:30,3:45,4:00,4:15,4:30,4:45,5:00,5:15,5:30,5:45,6:00,6:15,6:30,6:45,7:00,7:15,7:30,7:45,8:00,8:15,8:30,8:45,9:00,9:15,9:30,9:45,10:00,10:15,10:30,10:45,11:00,11:15,11:30,11:45,12:00,12:15,12:30,12:45,13:00,13:15,13:30,13:45,14:00,14:15,14:30,14:45,15:00,15:15,15:30,15:45,16:00,16:15,16:30,16:45,17:00,17:15,17:30,17:45,18:00,18:15,18:30,18:45,19:00,19:15,19:30,19:45,20:00,20:15,20:30,20:45,21:00,21:15,21:30,21:45,22:00,22:15,22:30,22:45,23:00,23:15,23:30,23:45" ;;
         3)
-          printf "enter the times of day you want to check (in military time, seperatated by commas, do it this way or it wont work)\n>>> "
+          printf "enter the times of day you want to check (in 24 hour time, seperatated by commas, do it this way or it wont work)\n>>> "
           read OTHER_THIRD
           if [ "$OTHER_THIRD" = "" ]; then
             printf "Error: input invalid\n"
@@ -57,6 +64,7 @@ while getopts "hlqs:S:D:q:c:H" flag; do
         ;;
         *) echo "streamonline: invalid option, please try again"; exit 1;;
       esac
+      
       # create timer unit file
       printf "${FIRST_THIRD}${OTHER_THIRD//,/\\nOnCalendar=}${LAST_THIRD}" > $HOME/.local/share/systemd/user/streamonline_$OPTARG.timer
       
@@ -64,22 +72,22 @@ while getopts "hlqs:S:D:q:c:H" flag; do
       printf "\nDo you want to open the stream with xdg-open (1) or streamlink (2)\n>>> "
       read chosen_client
       case $chosen_client in
-        1) chosen_client="xdg_open";stream_qaulity="360p";;
+        1) chosen_client="xdg_open";stream_quality="360p";;
         2) chosen_client="streamlink"
-          # printf "fetching data...\n"
-
-          printf "\nWhat qaulity do you want? 160p, 360p, 480p, 720p (available rarely), 720p60 (available usually), 1080p (available rarely) 1080p60 (available usually)-- please be sure your stream supports at least one, otherwise streamlink will not launch\n(leave empty for best quality)\n>>> "
-          read stream_qaulity
-          if [ -z $stream_qaulity ]; then
-            $stream_qaulity="best"
+          printf "\nWhat quality do you want? 160p, 360p, 480p, 720p (available rarely), 720p60 (available usually), 1080p (available rarely) 1080p60 (available usually - default)-- please be sure your stream supports at least one, otherwise streamlink will not launch\n(leave empty for best quality)\n>>> "
+          read stream_quality
+          if [ -z $stream_quality ]; then
+            stream_quality="best"
           fi
+          printf "Enter additional arguments to be passed to streamlink when stream is launched\n>>> "
+          read ADDITIONAL_ARGS
         ;;
         *) echo "streamonline: invalid option, please try again\n"; exit 1;;
       esac
       printf "Enter the site to connect to and the required syntax to connect\n\033[0;31m1. (do not include the streamer name - it must be at the end)\n2. (with https:// - otherwise it will not work)\n3. (this will be inserted exactly as typed, make sure your browser (or streamlink) can understand it)\033[0m\nenter the site to connect to and the required syntax to connect :\n>>>"
       read host_site
       
-      #notify_text styling
+      #custom notify_text styling
       # TODO add this
       printf "\nWhat notification style do you want? URL (1), stream title (2), category + stream title (3)\n>>> "
           read chosen_notify
@@ -91,7 +99,7 @@ while getopts "hlqs:S:D:q:c:H" flag; do
           esac
       
       # add config file
-      printf "000\n$chosen_client\n$stream_qaulity\n$host_site\n$chosen_notify" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
+      printf "000\n$chosen_client\n$stream_quality\n$host_site\n$chosen_notify\n$ADDITIONAL_ARGS" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
       # end config file creation
       
       # enable & start the modules for $OPTARG
@@ -160,9 +168,10 @@ if [ -z "${self_disable}" ]; then
   if [ -z "${mode_return}" ]; then
     doesExist=$( sed '1!d' "$sloc/${streamer}stream_state.txt" | grep -si -m 1 "$todaysDateNumber")
     mode="$(sed '2!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
-    qaulity="$(sed '3!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
+    quality="$(sed '3!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
     host="$(sed '4!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
     notify_text="$(sed '5!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
+    ADDITIONAL_ARGS="$(sed '6!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
   fi
   if [ -z "${doesExist}" ]; then
     # Are we already running?
@@ -170,19 +179,19 @@ if [ -z "${self_disable}" ]; then
       printf "busy" > "$sloc/${streamer}prog_state.txt"
       streamData="$(streamlink --json "${host}${streamer}")"
       # this grabs lines from json and trims them for our use, replace title with desired info in a new option and make a PR:
-      # | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)'
+      
       if returnStreamData | grep -sq '"streams"'; then
           toconsole "stream found."
           if [ -z "${mode_return}" ]; then
           case $notify_text in 
             host_link) notify_text="${host}${streamer}" && notify_title="$streamer" ;;
-            name) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | rev | cut -c 3- | rev)" && notify_title="$streamer" ;;
-            name_cat) notify_text="$(returnStreamData | grep -oP "title\K.*" | cut -c 5- | grep -Po '.*(?=.$)')" && notify_title="$(returnStreamData | grep -oP "category\K.*" | cut -c 5- | rev | cut -c 3- | rev)" ;;
+            name) notify_text="$(returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev)" && notify_title="$streamer" ;;
+            name_cat) notify_text="$(returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev )" && notify_title="$(returnStreamData streamlink --json https://www.twitch.tv/radiaactive  | jq .metadata.category | cut -c 2- | rev | cut -c 2- | rev )" ;;
           esac
             if [ "$(notify-send "${notify_title}" "${notify_text}" -u CRITICAL -a "${streamer} is online!" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
               case $mode in
                 xdg_open) xdg-open "$host$streamer" ;;
-                streamlink) nohup streamlink  --twitch-disable-ads --title "{author} - {category} - {title}" "$host$streamer" $qaulity & ;;
+                streamlink) nohup streamlink $ADDITIONAL_ARGS --title "{author} - {category} - {title}" "$host$streamer" $quality & ;;
                 *) echo "streamonline: unsupported mode, exiting";;
               esac
             fi
@@ -209,7 +218,9 @@ if [ -z "${self_disable}" ]; then
   fi
   if [ -z "${alreadyActive}" ]; then
     trap - EXIT
-    cleanup > /dev/null 2>&1 
+    cleanup > /dev/null 2>&1
   fi
+else
+  trap - EXIT
 fi
 exit 0
