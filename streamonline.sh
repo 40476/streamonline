@@ -1,5 +1,6 @@
 #!/bin/sh
 trap cleanup EXIT
+trap cleanup INT
 function cleanup(){ rm "$sloc/${streamer}prog_state.txt" > /dev/null 2>&1; }
 # detect missing commands
 depCommands=("streamlink" "xdg-open" "notify-send" "figlet" "systemctl" "sed" "grep" "cut" "rev" "date" "find" "mkdir" "nohup" "printf" "jq")
@@ -179,14 +180,14 @@ if [ -z "${self_disable}" ]; then
       printf "busy" > "$sloc/${streamer}prog_state.txt"
       streamData="$(streamlink --json "${host}${streamer}")"
       # this grabs lines from json and trims them for our use, replace title with desired info in a new option and make a PR:
-      
+      # returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev
       if returnStreamData | grep -sq '"streams"'; then
           toconsole "stream found."
           if [ -z "${mode_return}" ]; then
           case $notify_text in 
             host_link) notify_text="${host}${streamer}" && notify_title="$streamer" ;;
             name) notify_text="$(returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev)" && notify_title="$streamer" ;;
-            name_cat) notify_text="$(returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev )" && notify_title="$(returnStreamData streamlink --json https://www.twitch.tv/radiaactive  | jq .metadata.category | cut -c 2- | rev | cut -c 2- | rev )" ;;
+            name_cat) notify_text="$(returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev )" && notify_title="$(returnStreamData | jq .metadata.category | cut -c 2- | rev | cut -c 2- | rev )" ;;
           esac
             if [ "$(notify-send "${notify_title}" "${notify_text}" -u CRITICAL -a "${streamer} is online!" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
               case $mode in
