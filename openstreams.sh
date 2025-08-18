@@ -6,8 +6,8 @@ mkdir -p "$sloc"
 touch "$streamer_file"
 rm -f "$sloc/openstreams.txt"
 
-streamonline_path="$(which streamonline.sh 2>/dev/null || echo "$HOME/.local/bin/streamonline.sh")"
-openstreams_path="$(which openstreams.sh 2>/dev/null || echo "$HOME/.local/bin/openstreams.sh")"
+streamonline_path="$(which streamonline.sh 2>/dev/null || which streamonline 2>/dev/null || echo "$HOME/.local/bin/streamonline.sh")"
+openstreams_path="$(which openstreams.sh 2>/dev/null || which openstreams 2>/dev/null || echo "$HOME/.local/bin/openstreams.sh")"
 
 function update_scripts() {
   echo "🔄 Updating scripts from GitHub..."
@@ -34,7 +34,8 @@ function dothething() {
     [[ "$quality" == "$url" ]] && quality="$default_quality"
 
     name="$(basename "$url")"
-    streamonline -c "$name" -s "$url" >> "$sloc/openstreams.txt"
+    # echo $streamonline_path -c "$name" -s "${url%/*}/"
+    $streamonline_path -c "$name" -s "${url%/*}/" >> "$sloc/openstreams.txt"
     current="$(tail -n 1 "$sloc/openstreams.txt")"
     echo -e "$current"
     [[ "$current" == *"online"* ]] && online_streamers+=("$url|$quality")
