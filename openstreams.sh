@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 sloc="$HOME/.local/share/streamonline"
-streamer_file="$sloc/openstreams_streamers-twitch.txt"
+streamer_file="$sloc/openstreams_streamers.txt"
 mkdir -p "$sloc"
 touch "$streamer_file"
 rm -f "$sloc/openstreams.txt"
@@ -20,22 +20,24 @@ function update_scripts() {
 function load_streamers() {
   mapfile -t lines < "$streamer_file"
   default_quality="${lines[0]}"
-  streamers=("${lines[@]:1}")
+  streamer_entries=("${lines[@]:1}")
 }
 
 function dothething() {
   load_streamers
-  quality="${1:-$default_quality}"
-  count=0
-  online_streamers=()
   > "$sloc/openstreams.txt"
+  online_streamers=()
 
-  for i in "${streamers[@]}"; do
-    (( count++ ))
-    streamonline -c "$i" -s "https://twitch.tv/" >> "$sloc/openstreams.txt"
-    current="$(sed "$count!d" "$sloc/openstreams.txt")"
+  for entry in "${streamer_entries[@]}"; do
+    url="${entry%%|*}"
+    quality="${entry#*|}"
+    [[ "$quality" == "$url" ]] && quality="$default_quality"
+
+    name="$(basename "$url")"
+    streamonline -c "$name" -s "$url" >> "$sloc/openstreams.txt"
+    current="$(tail -n 1 "$sloc/openstreams.txt")"
     echo -e "$current"
-    [[ "$current" == *"online"* ]] && online_streamers+=("$i")
+    [[ "$current" == *"online"* ]] && online_streamers+=("$url|$quality")
   done
 
   echo "-----------------"
@@ -44,42 +46,48 @@ function dothething() {
   else
     grep online "$sloc/openstreams.txt"
     echo "-----------------"
-    for i in "${online_streamers[@]}"; do
-      echo "🎬 Launching $i with quality $quality..."
-      streamlink --title "{author} - {category} - {title}" "https://twitch.tv/$i" "$quality"
+    for entry in "${online_streamers[@]}"; do
+      url="${entry%%|*}"
+      quality="${entry#*|}"
+      echo "🎬 Launching $url with quality $quality..."
+      streamlink --title "{author} - {category} - {title}" "$url" "$quality"
     done
   fi
 }
 
 function add_streamer() {
-  echo "➕ Enter Twitch handle to add:"
-  read new_streamer
-  if ! grep -qi "^$new_streamer\$" "$streamer_file"; then
-    echo "$new_streamer" >> "$streamer_file"
-    echo "✅ Added $new_streamer."
+  echo "🔗 Paste full stream URL:"
+  read url
+  echo "🎚️ Enter preferred quality (or leave blank for default):"
+  read quality
+  quality="${quality:-$default_quality}"
+
+  if ! grep -q "^$url|" "$streamer_file"; then
+    echo "$url|$quality" >> "$streamer_file"
+    echo "✅ Added $url with quality $quality."
   else
-    echo "⚠️ $new_streamer is already in the list."
+    echo "⚠️ $url is already in the list."
   fi
 }
 
 function remove_streamer() {
-  echo "➖ Enter Twitch handle to remove:"
-  read remove_streamer
-  if grep -qi "^$remove_streamer\$" "$streamer_file"; then
-    grep -vi "^$remove_streamer\$" "$streamer_file" > "$streamer_file.tmp" && mv "$streamer_file.tmp" "$streamer_file"
-    echo "✅ Removed $remove_streamer."
+  echo "🔗 Paste full stream URL to remove:"
+  read url
+  if grep -q "^$url|" "$streamer_file"; then
+    grep -v "^$url|" "$streamer_file" > "$streamer_file.tmp" && mv "$streamer_file.tmp" "$streamer_file"
+    echo "✅ Removed $url."
   else
-    echo "⚠️ $remove_streamer not found in list."
+    echo "⚠️ $url not found in list."
   fi
 }
 
 function manual_stream() {
-  echo "🎯 Enter Twitch handle:"
-  read manuallyChosenStreamer
-  streamlink "https://twitch.tv/$manuallyChosenStreamer" | grep "Available streams:"
+  echo "🔗 Paste full stream URL:"
+  read url
+  streamlink "$url" | grep "Available streams:"
   echo "🎚️ Enter desired quality:"
   read qlty
-  streamlink --title "{author} - {category} - {title}" "https://twitch.tv/$manuallyChosenStreamer" "$qlty"
+  streamlink --title "{author} - {category} - {title}" "$url" "$qlty"
 }
 
 function clear_logs() {
@@ -101,9 +109,7 @@ function menu() {
 
   case $action in
     1)
-      echo "🎚️ Enter quality (or press Enter for default):"
-      read -t 10 qlty
-      dothething "${qlty:-$default_quality}"
+      dothething
       ;;
     2)
       manual_stream
@@ -128,7 +134,7 @@ function menu() {
       ;;
     *)
       echo "⏱️ Timeout or invalid input. Proceeding automatically..."
-      dothething "$default_quality"
+      dothething
       ;;
   esac
 }
