@@ -1,6 +1,5 @@
 #!/bin/sh
-trap cleanup EXIT
-trap cleanup INT
+trap cleanup EXIT INT
 function cleanup(){ rm "$sloc/${streamer}prog_state.txt" > /dev/null 2>&1; }
 # detect missing commands
 depCommands=("streamlink" "xdg-open" "notify-send" "figlet" "systemctl" "sed" "grep" "cut" "rev" "date" "find" "mkdir" "nohup" "printf" "jq")
@@ -73,7 +72,7 @@ while getopts "hlqs:S:D:q:c:H" flag; do
       printf "\nDo you want to open the stream with xdg-open (1) or streamlink (2)\n>>> "
       read chosen_client
       case $chosen_client in
-        1) chosen_client="xdg_open";stream_quality="360p";;
+        1) chosen_client="xdg_open";stream_quality="best";;
         2) chosen_client="streamlink"
           printf "\nWhat quality do you want? 160p, 360p, 480p, 720p (available rarely), 720p60 (available usually), 1080p (available rarely) 1080p60 (available usually - default)-- please be sure your stream supports at least one, otherwise streamlink will not launch\n(leave empty for best quality)\n>>> "
           read stream_quality
@@ -83,27 +82,40 @@ while getopts "hlqs:S:D:q:c:H" flag; do
           printf "Enter additional arguments to be passed to streamlink when stream is launched\n>>> "
           read ADDITIONAL_ARGS
         ;;
+        3)
+          chosen_client="command"
+          printf "Enter shell command to execute\n>>> "
+          read command
+        ;;
         *) echo "streamonline: invalid option, please try again\n"; exit 1;;
       esac
-      printf "Enter the site to connect to and the required syntax to connect\n\033[0;31m1. (do not include the streamer name - it must be at the end)\n2. (with https:// - otherwise it will not work)\n3. (this will be inserted exactly as typed, make sure your browser (or streamlink) can understand it)\033[0m\nenter the site to connect to and the required syntax to connect :\n>>>"
+      printf "Enter the site to connect to and the required syntax to connect\n\033[0;31m1. (do not include the streamer name - it must be at the end)\n2. (with https:// - otherwise it will not work)\n3. (this will be inserted exactly as typed, make sure your browser (or streamlink) can understand it)\033[0m\nenter the site to connect to and the required syntax to connect :\n>>> "
       read host_site
       
       #custom notify_text styling
       # TODO add this
       printf "\nWhat notification style do you want? URL (1), stream title (2), category + stream title (3)\n>>> "
-          read chosen_notify
-          case $chosen_notify in
-            1) chosen_notify='host_link';;
-            2) chosen_notify='name';;
-            3) chosen_notify='name_cat';;
-            *) printf "streamonline: invalid option, please try again\n"; exit 1;;
-          esac
+      read chosen_notify
+      case $chosen_notify in
+        1) chosen_notify='host_link';;
+        2) chosen_notify='name';;
+        3) chosen_notify='name_cat';;
+         *) printf "streamonline: invalid option, please try again\n"; exit 1;;
+      esac
+      printf "\nWhat notification priority do you want? Low (1), Normal (2), Critical (3)\n>>> "
+      read priority
+      case $priority in
+        1) priority='low';;
+        2) priority='normal';;
+        3) priority='critical';;
+         *) printf "streamonline: invalid option, please try again\n"; exit 1;;
+      esac
       
       # add config file
-      printf "000\n$chosen_client\n$stream_quality\n$host_site\n$chosen_notify\n$ADDITIONAL_ARGS" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
+      printf "000\n$chosen_client\n$stream_quality\n$host_site\n$chosen_notify\n$ADDITIONAL_ARGS\n$command\n$priority" > "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
       # end config file creation
       
-      # enable & start the modules for $OPTARG
+      # enable and start the modules for $OPTARG
       systemctl --user enable "streamonline_$OPTARG.timer"
       systemctl --user start "streamonline_$OPTARG.timer"
       systemctl --user enable "streamonline_$OPTARG.service"
@@ -150,9 +162,16 @@ function toconsole() {
 }
 # dont mess with this, its goofy
 function returnStreamData(){ echo "$streamData"; }
+function fallbackValue(){
+  if [ "$1" == "" ]; then
+    printf "$2"
+  else
+    printf "$1"
+  fi
+}
 function cleanup(){ rm "$sloc/${streamer}prog_state.txt"; }
 function canRun(){
-  # run anyway if statefile more than 720 minutes old is found
+  # run anyway if lockfile more than 720 minutes old is found
   if [ ! -f "$sloc/${streamer}prog_state.txt" ] || [ $(find "$sloc/${streamer}prog_state.txt" -mmin +720) ]; then
     printf "true"
   else
@@ -163,21 +182,23 @@ function canRun(){
 # chaos ensues
 if [ -z "${self_disable}" ]; then
   if [ -z "${mode_return}" ]; then streamer=$1; fi
-  mkdir "$HOME/.local/share/streamonline"  > /dev/null 2>&1
+  mkdir "$HOME/.local/share/streamonline" > /dev/null 2>&1
   sloc="$HOME/.local/share/streamonline"
   if [ -z "${mode_return}" ]; then todaysDateNumber=$(date '+%j'); else todaysDateNumber="returnX"; fi
   if [ -z "${mode_return}" ]; then
     doesExist=$( sed '1!d' "$sloc/${streamer}stream_state.txt" | grep -si -m 1 "$todaysDateNumber")
-    mode="$(sed '2!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
-    quality="$(sed '3!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
-    host="$(sed '4!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
-    notify_text="$(sed '5!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
-    ADDITIONAL_ARGS="$(sed '6!d' "$sloc/${streamer}stream_state.txt")" > /dev/null 2>&1
+    mode="$(fallbackValue "$(sed '2!d' "$sloc/${streamer}stream_state.txt")" 'xdg_open')"
+    quality="$(fallbackValue "$(sed '3!d' "$sloc/${streamer}stream_state.txt")" 'best' )"
+    host="$(sed '4!d' "$sloc/${streamer}stream_state.txt")"
+    notify_text="$(fallbackValue "$(sed '5!d' "$sloc/${streamer}stream_state.txt")" 'name_cat' )"
+    ADDITIONAL_ARGS="$(sed '6!d' "$sloc/${streamer}stream_state.txt")"
+    command="$(sed '7!d' "$sloc/${streamer}stream_state.txt")"
+    priority="$(fallbackValue "$(sed '8!d' "$sloc/${streamer}stream_state.txt")" 'normal' )"
   fi
   if [ -z "${doesExist}" ]; then
     # Are we already running?
     if canRun 2> /dev/null | grep -sq true; then
-      printf "busy" > "$sloc/${streamer}prog_state.txt"
+      if [ -z "${mode_return}" ]; then printf "busy" > "$sloc/${streamer}prog_state.txt"; fi
       streamData="$(streamlink --json "${host}${streamer}")"
       # this grabs lines from json and trims them for our use, replace title with desired info in a new option and make a PR:
       # returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev
@@ -189,11 +210,12 @@ if [ -z "${self_disable}" ]; then
             name) notify_text="$(returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev)" && notify_title="$streamer" ;;
             name_cat) notify_text="$(returnStreamData | jq .metadata.title | cut -c 2- | rev | cut -c 2- | rev )" && notify_title="$(returnStreamData | jq .metadata.category | cut -c 2- | rev | cut -c 2- | rev )" ;;
           esac
-            if [ "$(notify-send "${notify_title}" "${notify_text}" -u CRITICAL -a "${streamer} is online!" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
+            if [ "$(notify-send -t 0 "${notify_title}" "${notify_text}" -u "${priority}" -a "${streamer} is online!" -A 'Open Stream' -A 'Nope')" -eq '0' ]; then
               case $mode in
-                xdg_open) xdg-open "$host$streamer" ;;
-                streamlink) nohup streamlink $ADDITIONAL_ARGS --title "{author} - {category} - {title}" "$host$streamer" $quality & ;;
-                *) echo "streamonline: unsupported mode, exiting";;
+                xdg_open) nohup xdg-open "$host$streamer" & > /dev/null 2>&1;;
+                streamlink) nohup streamlink $ADDITIONAL_ARGS --title "{author} - {category} - {title}" "$host$streamer" $quality & > /dev/null 2>&1 ;;
+                command) nohup $command & > /dev/null 2>&1  ;;
+                *) echo "streamonline:  $mode is an unsupported mode, exiting";;
               esac
             fi
           else
