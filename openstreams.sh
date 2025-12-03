@@ -64,7 +64,7 @@ function add_streamer() {
   quality="${quality:-$default_quality}"
 
   if ! grep -q "^$url|" "$streamer_file"; then
-    echo "$url|$quality" >> "$streamer_file"
+    echo -e "\n$url|$quality" >> "$streamer_file"
     echo "✅ Added $url with quality $quality."
   else
     echo "⚠️ $url is already in the list."
@@ -105,7 +105,7 @@ function menu() {
   echo "(5) Remove streamer"
   echo "(6) View current streamer list"
   echo "(7) Update scripts"
-  echo ">>> "
+  echo -n ">>> "
   read -t 10 action
 
   case $action in
