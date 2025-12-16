@@ -6,13 +6,20 @@ this is the culmination of many months of work, enjoy!
 
 ## Instructions
 
+To install:
+
+```bash
+curl -fsSl https://raw.githubusercontent.com/40476/streamonline/refs/heads/main/openstreams.sh | bash -s -- < /dev/tty
+
+```
+
 ### Do not edit these files unless you know what you are doing
 
 a configuration file looks like **this**
 
 stored as : `~/.local/share/streamonline/zentreyastream_state.txt`
 
-```
+```plaintext
 000
 streamlink
 360p
