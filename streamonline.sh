@@ -27,7 +27,7 @@ while getopts "hlqs:S:D:q:c:H" flag; do
     printf "streamonline: check if a streamer is online
     -h            : show this help
     -H hang and do nothing for 9999999999 seconds
-    -S [streamer] : setup automatic stream checking for [streamer], see this apps code to change timing
+    -S [streamer] : setup automatic stream checking for [streamer]
     -D [streamer] : remove systemd units for automatic checking for [streamer]
     -c [streamer] : check the status of [streamer], primarily for use in with other scripts and programs -->(requires -s)<--
     -s [host site]the site to connect to and the required syntax to connect
@@ -139,7 +139,7 @@ while getopts "hlqs:S:D:q:c:H" flag; do
     ;;
   c) # check only, no special stuff
       mode_return="returnstreamer"
-      STREAMONLINE_SILENT_MODE='gyaat'
+      STREAMONLINE_SILENT_MODE='67'
       streamer=$OPTARG
     ;;
     s) # pain.
