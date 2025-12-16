@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+for cmd in curl streamlink; do
+  if ! command -v $cmd &> /dev/null; then
+    echo "❌ $cmd is not installed. Please install it and try again."
+    exit 1
+  fi
+done
+
 sloc="$HOME/.local/share/streamonline"
 streamer_file="$sloc/openstreams_streamers.txt"
 mkdir -p "$sloc"
@@ -12,8 +19,11 @@ openstreams_path="$(which openstreams.sh 2>/dev/null || which openstreams 2>/dev
 function update_scripts() {
   echo "🔄 Updating scripts from GitHub..."
   curl -fsSL "https://raw.githubusercontent.com/40476/streamonline/main/streamonline.sh" -o "$streamonline_path" && chmod +x "$streamonline_path"
+  printf "streamonline.sh saved as $streamonline_path\n"
   curl -fsSL "https://raw.githubusercontent.com/40476/streamonline/main/openstreams.sh" -o "$openstreams_path" && chmod +x "$openstreams_path"
+  printf "openstreams.sh saved as $openstreams_path\n"
   echo "✅ Scripts updated successfully."
+  exit 0
   exit 0
 }
 
@@ -104,7 +114,7 @@ function menu() {
   echo "(4) Add streamer"
   echo "(5) Remove streamer"
   echo "(6) View current streamer list"
-  echo "(7) Update scripts"
+  echo "(7) Update or install scripts"
   echo -n ">>> "
   read -t 10 action
 
