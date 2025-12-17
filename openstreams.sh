@@ -74,9 +74,9 @@ function add_streamer() {
   quality="${quality:-$default_quality}"
   if ! grep -q "^$url|" "$streamer_file"; then
     if [[ "$quality" == "$default_quality" ]]; then
-      echo -e "\n$url" >> "$streamer_file"
+      echo -e "$url\n" >> "$streamer_file"
     else
-      echo -e "\n$url|$quality" >> "$streamer_file"
+      echo -e "$url|$quality\n" >> "$streamer_file"
     fi
     echo "✅ Added $url with quality $quality."
   else
