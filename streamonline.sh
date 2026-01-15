@@ -14,7 +14,11 @@ if [ ${#missing_commands[@]} -gt 0 ]; then
   done
   exit 127
 fi
-while getopts "hlqs:S:D:q:c:H" flag; do
+
+mkdir "$HOME/.local/share/streamonline" > /dev/null 2>&1
+sloc="$HOME/.local/share/streamonline"
+
+while getopts "hlqs:S:D:q:c:HR:" flag; do
   case $flag in
     l)
       figlet StreamOnline
@@ -55,6 +59,7 @@ while getopts "hlqs:S:D:q:c:H" flag; do
         1) OTHER_THIRD="7:00,7:15,7:30,7:45,8:00,8:15,8:30,8:45,9:00,9:15,9:30,9:45,10:00,10:15,10:30,10:45,11:00,11:15,11:30,11:45,12:00,12:15,12:30,12:45,13:00,13:15,13:30,13:45,14:00,14:15,14:30,14:45,15:00,15:15,15:30,15:45,16:00,16:15,16:30,16:45,17:00,17:15,17:30,17:45,18:00,18:15,18:30,18:45,19:00,19:15,19:30,19:45,20:00,20:15,20:30" ;;
         2) OTHER_THIRD="0:00,0:15,0:30,0:45,1:00,1:15,1:30,1:45,2:00,2:15,2:30,2:45,3:00,3:15,3:30,3:45,4:00,4:15,4:30,4:45,5:00,5:15,5:30,5:45,6:00,6:15,6:30,6:45,7:00,7:15,7:30,7:45,8:00,8:15,8:30,8:45,9:00,9:15,9:30,9:45,10:00,10:15,10:30,10:45,11:00,11:15,11:30,11:45,12:00,12:15,12:30,12:45,13:00,13:15,13:30,13:45,14:00,14:15,14:30,14:45,15:00,15:15,15:30,15:45,16:00,16:15,16:30,16:45,17:00,17:15,17:30,17:45,18:00,18:15,18:30,18:45,19:00,19:15,19:30,19:45,20:00,20:15,20:30,20:45,21:00,21:15,21:30,21:45,22:00,22:15,22:30,22:45,23:00,23:15,23:30,23:45" ;;
         3)
+          printf "\n\nhere are some times for you to copy & paste\n0:00,0:15,0:30,0:45,1:00,1:15,1:30,1:45,2:00,2:15,2:30,2:45,3:00,3:15,3:30,3:45,4:00,4:15,4:30,4:45,5:00,5:15,5:30,5:45,6:00,6:15,6:30,6:45,7:00,7:15,7:30,7:45,8:00,8:15,8:30,8:45,9:00,9:15,9:30,9:45,10:00,10:15,10:30,10:45,11:00,11:15,11:30,11:45,12:00,12:15,12:30,12:45,13:00,13:15,13:30,13:45,14:00,14:15,14:30,14:45,15:00,15:15,15:30,15:45,16:00,16:15,16:30,16:45,17:00,17:15,17:30,17:45,18:00,18:15,18:30,18:45,19:00,19:15,19:30,19:45,20:00,20:15,20:30,20:45,21:00,21:15,21:30,21:45,22:00,22:15,22:30,22:45,23:00,23:15,23:30,23:45\n\n"
           printf "enter the times of day you want to check (in 24 hour time, seperatated by commas, do it this way or it wont work)\n>>> "
           read OTHER_THIRD
           if [ "$OTHER_THIRD" = "" ]; then
@@ -137,13 +142,18 @@ while getopts "hlqs:S:D:q:c:H" flag; do
       rm "$HOME/.local/share/systemd/user/streamonline_$OPTARG.service"
       rm "$HOME/.local/share/streamonline/${OPTARG}stream_state.txt"
     ;;
-  c) # check only, no special stuff
+    c) # check only, no special stuff
       mode_return="returnstreamer"
       STREAMONLINE_SILENT_MODE='67'
       streamer=$OPTARG
     ;;
     s) # pain.
       host=$OPTARG
+    ;;
+    R) # pain.
+      self_disable=TRUE
+      sed -i '1s/.*/000/' "$sloc/${OPTARG}stream_state.txt"
+
     ;;
     H) # debugging.
       sleep 9999999999
@@ -182,8 +192,6 @@ function canRun(){
 # chaos ensues
 if [ -z "${self_disable}" ]; then
   if [ -z "${mode_return}" ]; then streamer=$1; fi
-  mkdir "$HOME/.local/share/streamonline" > /dev/null 2>&1
-  sloc="$HOME/.local/share/streamonline"
   if [ -z "${mode_return}" ]; then todaysDateNumber=$(date '+%j'); else todaysDateNumber="returnX"; fi
   if [ -z "${mode_return}" ]; then
     doesExist=$( sed '1!d' "$sloc/${streamer}stream_state.txt" | grep -si -m 1 "$todaysDateNumber")
